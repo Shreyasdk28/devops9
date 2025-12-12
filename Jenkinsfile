@@ -2,50 +2,44 @@ pipeline {
     agent any
 
     stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
         stage('Build') {
     steps {
         sh '''
+            # remove old venv to avoid leftover incompatible packages
+            rm -rf venv
+
             python3 -m venv venv
             . venv/bin/activate
-            pip install --upgrade pip
-            pip install -r requirements.txt
+            python -m pip install --upgrade pip
+
+            # force reinstall to ensure pinned versions are applied
+            pip install --upgrade --force-reinstall -r requirements.txt
+            pip list
         '''
     }
 }
 
-stage('Test') {
-    steps {
-        sh '''
-            . venv/bin/activate
-            python3 -m unittest discover -s .
-        '''
-    }
-}
-
+        stage('Test') {
+            steps {
+                sh '''
+                    . venv/bin/activate
+                    python3 -m unittest discover -s .
+                '''
+            }
+        }
 
         stage('Deploy') {
             steps {
-                echo 'Deploying application...'
                 sh '''
-                mkdir -p ${WORKSPACE}/python-app-deploy
-                cp ${WORKSPACE}/app.py ${WORKSPACE}/python-app-deploy/
-                '''
-            }
-        }
-        stage('Run Application') {
-            steps {
-                echo 'Running application...'
-                sh '''
-                nohup python3 ${WORKSPACE}/python-app-deploy/app.py > ${WORKSPACE}/python-app-deploy/app.log 2>&1 &
-                echo $! > ${WORKSPACE}/python-app-deploy/app.pid
-                '''
-            }
-        }
-        stage('Test Application') {
-            steps {
-                echo 'Testing application...'
-                sh '''
-                python3 ${WORKSPACE}/test_app.py
+                    mkdir -p python-app-deploy
+                    cp app.py python-app-deploy/
                 '''
             }
         }
@@ -53,10 +47,10 @@ stage('Test') {
 
     post {
         success {
-            echo 'Pipeline completed successfully!'
+            echo "Pipeline completed successfully!"
         }
         failure {
-            echo 'Pipeline failed. Check the logs for more details.'
+            echo "Pipeline failed. Check logs."
         }
     }
 }
