@@ -3,16 +3,26 @@ pipeline {
 
     stages {
         stage('Build') {
-            steps {
-                echo 'Creating virtual environment and installing dependencies...'
-            }
-        }
-        stage('Test') {
-            steps {
-                echo 'Running tests...'
-                sh 'python3 -m unittest discover -s .'
-            }
-        }
+    steps {
+        sh '''
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install --upgrade pip
+            pip install -r requirements.txt
+        '''
+    }
+}
+
+stage('Test') {
+    steps {
+        sh '''
+            . venv/bin/activate
+            python3 -m unittest discover -s .
+        '''
+    }
+}
+
+
         stage('Deploy') {
             steps {
                 echo 'Deploying application...'
